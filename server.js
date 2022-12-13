@@ -41,6 +41,17 @@ app.get("/documents", async (req, res) => {
 	res.status(200).send({ documents });
 });
 
+app.get("/document/:uid", async (req, res) => {
+	const { uid } = req.params;
+
+	if (!uid) {
+		return res.status(400).send({ message: "Must provide document uid" });
+	}
+
+	const document = await Document.findOne({ uid });
+	res.status(200).send({ document });
+});
+
 app.post("/document", async (req, res) => {
 	const { ownerId, name } = req.body;
 
@@ -50,7 +61,7 @@ app.post("/document", async (req, res) => {
 			.send({ message: "Must provide document name and ownerId" });
 	}
 
-	const doc = await Document.create({
+	const document = await Document.create({
 		uid: uuidv4(),
 		data: dataDefaultValue,
 		ownerId,
@@ -59,7 +70,7 @@ app.post("/document", async (req, res) => {
 	});
 	res
 		.status(201)
-		.send({ message: "Document created successfully.", data: { doc } });
+		.send({ message: "Document created successfully.", data: { document } });
 });
 
 io.on("connection", (socket) => {
