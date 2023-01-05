@@ -8,5 +8,6 @@ module.exports = model(
 		data: Object,
 		name: String,
 		createdAt: String,
+		active: Boolean,
 	})
 );

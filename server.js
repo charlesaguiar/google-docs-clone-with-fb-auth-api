@@ -17,7 +17,7 @@ const server = http.createServer(app);
 
 const io = sio(server, {
 	cors: {
-		origin: "http://localhost:5173",
+		origin: "*",
 		method: ["GET", "POST"],
 	},
 });
@@ -37,7 +37,7 @@ app.get("/documents", async (req, res) => {
 			.send({ message: "Must provide ownerId to get documents" });
 	}
 
-	const documents = await Document.find({ ownerId });
+	const documents = await Document.find({ ownerId, active: true });
 	res.status(200).send({ documents });
 });
 
@@ -53,7 +53,7 @@ app.get("/document/:uid", async (req, res) => {
 });
 
 app.post("/document", async (req, res) => {
-	const { ownerId, name } = req.body;
+	const { ownerId, name, data } = req.body;
 
 	if (!ownerId || !name) {
 		return res
@@ -63,14 +63,61 @@ app.post("/document", async (req, res) => {
 
 	const document = await Document.create({
 		uid: uuidv4(),
-		data: dataDefaultValue,
+		data: data || dataDefaultValue,
 		ownerId,
 		name,
 		createdAt: new Date().toISOString(),
+		active: true,
 	});
 	res
 		.status(201)
 		.send({ message: "Document created successfully.", data: { document } });
+});
+
+app.patch("/document", async (req, res) => {
+	const { uid, name } = req.body;
+
+	if (!uid || !name) {
+		return res
+			.status(400)
+			.send({ message: "Must provide document name and uid" });
+	}
+
+	const filter = { uid };
+	const update = { name };
+
+	await Document.findOneAndUpdate(filter, update);
+
+	res.status(201).send({ message: "Document successfully updated." });
+});
+
+app.delete("/document/:uid", async (req, res) => {
+	const { uid } = req.params;
+
+	if (!uid) {
+		return res.status(400).send({ message: "Must provide document uid" });
+	}
+
+	const filter = { uid };
+	const update = { active: false };
+
+	await Document.findOneAndUpdate(filter, update);
+
+	res.status(201).send({ message: "Document successfully soft-deleted." });
+});
+
+app.delete("/document/h/:uid", async (req, res) => {
+	const { uid } = req.params;
+
+	if (!uid) {
+		return res.status(400).send({ message: "Must provide document uid" });
+	}
+
+	const filter = { uid };
+
+	await Document.deleteOne(filter);
+
+	res.status(201).send({ message: "Document successfully hard-deleted." });
 });
 
 io.on("connection", (socket) => {
@@ -107,6 +154,7 @@ async function findOrCreateDocument(id, ownerId, name) {
 		ownerId,
 		data: dataDefaultValue,
 		name,
+		active: true,
 	});
 }
 
