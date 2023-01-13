@@ -8,6 +8,7 @@ module.exports = model(
 		data: Object,
 		name: String,
 		createdAt: String,
+		cloned: Boolean,
 		active: Boolean,
 	})
 );

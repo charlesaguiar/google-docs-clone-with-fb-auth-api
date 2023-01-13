@@ -61,6 +61,12 @@ app.post("/document", async (req, res) => {
 			.send({ message: "Must provide document name and ownerId" });
 	}
 
+	if (await Document.findOne({ name, active: true })) {
+		return res
+			.status(400)
+			.send({ message: `Document: "${name}" already exists` });
+	}
+
 	const document = await Document.create({
 		uid: uuidv4(),
 		data: data || dataDefaultValue,
@@ -72,6 +78,30 @@ app.post("/document", async (req, res) => {
 	res
 		.status(201)
 		.send({ message: "Document created successfully.", data: { document } });
+});
+
+app.post("/clone-document", async (req, res) => {
+	const { ownerId, name, data } = req.body;
+
+	if (!ownerId || !name) {
+		return res
+			.status(400)
+			.send({ message: "Must provide document name and ownerId" });
+	}
+
+	const document = await Document.create({
+		uid: uuidv4(),
+		data: data || dataDefaultValue,
+		ownerId,
+		name: `${name} - ${uuidv4()}`,
+		createdAt: new Date().toISOString(),
+		cloned: true,
+		active: true,
+	});
+
+	res
+		.status(201)
+		.send({ message: "Document cloned successfully.", data: { document } });
 });
 
 app.patch("/document", async (req, res) => {
@@ -88,7 +118,7 @@ app.patch("/document", async (req, res) => {
 
 	await Document.findOneAndUpdate(filter, update);
 
-	res.status(201).send({ message: "Document successfully updated." });
+	res.status(204).send();
 });
 
 app.delete("/document/:uid", async (req, res) => {
@@ -103,7 +133,7 @@ app.delete("/document/:uid", async (req, res) => {
 
 	await Document.findOneAndUpdate(filter, update);
 
-	res.status(201).send({ message: "Document successfully soft-deleted." });
+	res.status(204).send();
 });
 
 app.delete("/document/h/:uid", async (req, res) => {
@@ -117,7 +147,7 @@ app.delete("/document/h/:uid", async (req, res) => {
 
 	await Document.deleteOne(filter);
 
-	res.status(201).send({ message: "Document successfully hard-deleted." });
+	res.status(204).send();
 });
 
 io.on("connection", (socket) => {
